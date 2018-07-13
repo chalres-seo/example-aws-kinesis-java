@@ -44,9 +44,7 @@ Example Java library for AWS Kinesis SDK, KCL, KPL
 * Produce record
 
 ```Java
-def produce[T](records: Vector[RecordImpl[T]]): Future[Boolean]
 
-produce(YOUR_PRODUCE_RECORDS)
 ```
 
 * Stop
