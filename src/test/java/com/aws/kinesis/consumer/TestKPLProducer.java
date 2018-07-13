@@ -1,10 +1,12 @@
-package com.aws.kinesis.kpl;
+package com.aws.kinesis.consumer;
 
 import static org.hamcrest.CoreMatchers.is;
 
 import com.aws.kinesis.api.APIClient;
 import com.aws.kinesis.api.TestAPIConsumeAndProduce;
 
+import com.aws.kinesis.library.producer.KPLProducer;
+import com.aws.kinesis.library.producer.KPLProducerFactory;
 import com.aws.kinesis.record.ProduceRecord;
 import org.junit.Assert;
 import org.junit.Before;

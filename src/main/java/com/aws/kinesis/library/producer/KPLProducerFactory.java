@@ -1,4 +1,4 @@
-package com.aws.kinesis.kpl;
+package com.aws.kinesis.library.producer;
 
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
@@ -13,7 +13,7 @@ public class KPLProducerFactory {
   private static Logger logger = LoggerFactory.getLogger(KPLProducerFactory.class);
 
   private static KinesisProducerConfiguration kplConfigProps = KinesisProducerConfiguration
-    .fromPropertiesFile("conf/aws_kinesis_kpl_default.properties");
+    .fromPropertiesFile("conf/aws_kinesis_kpl_daemon.properties");
 
   private static ConcurrentHashMap<String, KPLProducer> kplProducerList = new ConcurrentHashMap<>();
 

@@ -1,4 +1,4 @@
-package com.aws.kinesis.kcl;
+package com.aws.kinesis.library.consumer;
 
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import org.slf4j.Logger;

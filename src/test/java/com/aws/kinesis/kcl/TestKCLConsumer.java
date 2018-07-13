@@ -1,10 +1,11 @@
 package com.aws.kinesis.kcl;
 
 import com.aws.kinesis.api.APIClient;
-import com.aws.kinesis.kcl.processors.StdoutStringRecordProcessorFactory;
-import com.aws.kinesis.kcl.processors.TmpFileoutStringRecordProcessorFactory;
-import com.aws.kinesis.kpl.KPLProducer;
-import com.aws.kinesis.kpl.KPLProducerFactory;
+import com.aws.kinesis.library.consumer.KCLConsumer;
+import com.aws.kinesis.library.consumer.processors.StdoutStringRecordProcessorFactory;
+import com.aws.kinesis.library.consumer.processors.TmpFileoutStringRecordProcessorFactory;
+import com.aws.kinesis.library.producer.KPLProducer;
+import com.aws.kinesis.library.producer.KPLProducerFactory;
 import com.aws.kinesis.record.ProduceRecord;
 
 import org.junit.Before;

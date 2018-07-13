@@ -7,9 +7,12 @@ sourceCompatibility = 1.8
 
 def junitVersion = '4.12'
 def logbackVersion = '1.2.3'
+
 def awsSDKVersion = '1.11.354'
 def awsKCLVersion = '1.9.1'
 def awsKPLVersion = '0.12.9'
+
+def typeSafeConfig = '1.3.3'
 
 repositories {
     mavenCentral()
@@ -20,6 +23,7 @@ dependencies {
     compile group: 'com.amazonaws', name: 'amazon-kinesis-client', version: awsKCLVersion
     compile group: 'com.amazonaws', name: 'amazon-kinesis-producer', version: awsKPLVersion
     compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    compile group: 'com.typesafe', name: 'config', version: typeSafeConfig
     testCompile group: 'junit', name: 'junit', version: junitVersion
 }
 
@@ -31,4 +35,18 @@ jar {
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
+}
+
+task(api, dependsOn: 'classes', type: JavaExec) {
+    main = 'com.apps.ExampleSdkApiAppMain'
+    classpath = sourceSets.main.runtimeClasspath
+    args '', ''
+    systemProperty '', ''
+}
+
+task(library, dependsOn: 'classes', type: JavaExec) {
+    main = 'com.apps.ExampleLibraryAppMain'
+    classpath = sourceSets.main.runtimeClasspath
+    args '', ''
+    systemProperty '', ''
 }

@@ -5,7 +5,7 @@ import com.amazonaws.services.kinesis.model.*;
 import com.aws.credentials.CredentialsFactory;
 import com.aws.kinesis.record.ProduceRecord;
 import com.aws.kinesis.record.StringProduceRecord;
-import jdk.nashorn.internal.objects.annotations.Getter;
+import com.utils.AppConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /**
@@ -25,8 +24,8 @@ import java.util.stream.Stream;
  *
  */
 public class APIClient {
-  private static long BACKOFF_TIME_IN_MILLIS = 1000L;
-  private static int RETRY_COUNT = 3;
+  private static long BACKOFF_TIME_IN_MILLIS = AppConfig.getRetryBackoffTimeInMillis();
+  private static int RETRY_COUNT = AppConfig.getRetryAttemptCount();
 
   private static Logger logger = LoggerFactory.getLogger(APIClient.class);
 
@@ -40,7 +39,7 @@ public class APIClient {
    * @param awsProfileName aws account profile name, or use default profile name from CredentialsFactory
    * @param awsRegionName aws region name. of use default region name from CredentialsFactory
    */
-  public APIClient(String awsProfileName, String awsRegionName) {
+  public APIClient(final String awsProfileName, final String awsRegionName) {
     this.awsProfileName = awsProfileName;
     this.awsRegionName = awsRegionName;
     this.kinesisClient = APIClientCreator.getInstance().getAPIClient(awsProfileName, awsRegionName);
@@ -51,26 +50,29 @@ public class APIClient {
       CredentialsFactory.getInstance().getDefaultRegionName());
   }
 
-  public String getAwsProfileName() {
-    return this.awsProfileName;
-  }
-
-  public String getAwsRegionName() {
-    return this.awsRegionName;
-  }
 
   /**
    * Getter
    */
+  public String getAwsProfileName() {
+    return this.awsProfileName;
+  }
+  public String getAwsRegionName() {
+    return this.awsRegionName;
+  }
   public AmazonKinesisAsync getAmazonKinesisClient() {
     return this.kinesisClient;
   }
 
-  public Future<CreateStreamResult> createStream(String streamName, int shardCount) {
+  public Future<CreateStreamResult> createStream(final String streamName, final int shardCount) {
+    logger.debug("create stream. name: " + streamName + ", shard count: " + shardCount);
+
     return kinesisClient.createStreamAsync(streamName, shardCount);
   }
 
-  public Future<DeleteStreamResult> deleteStream(String streamName) {
+  public Future<DeleteStreamResult> deleteStream(final String streamName) {
+    logger.debug("delete stream. name: " + streamName);
+
     return kinesisClient.deleteStreamAsync(streamName);
   }
 
@@ -118,8 +120,9 @@ public class APIClient {
    * @throws ResourceNotFoundException
    * @throws LimitExceededException
    */
-  public CompletableFuture<Optional<List<Shard>>> getShardList(String streamName) throws ResourceNotFoundException, LimitExceededException {
-    logger.debug(this.debugStreamPrefix(streamName) + "get shard list.");
+  public CompletableFuture<Optional<List<Shard>>> getShardList(final String streamName)
+    throws ResourceNotFoundException, LimitExceededException {
+    logger.debug("get shard list. stream: " + streamName);
 
     return CompletableFuture
       .supplyAsync(() -> {
@@ -136,7 +139,8 @@ public class APIClient {
           shards.addAll(describeStreamResult.getStreamDescription().getShards());
 
           if (describeStreamResult.getStreamDescription().getHasMoreShards() && shards.size() > 0) {
-            logger.debug(this.debugStreamPrefix(streamName) + "has more shards");
+            logger.debug("stream has more shards.");
+
             exclusiveStartShardId = shards.get(shards.size() - 1).getShardId();
           } else {
             exclusiveStartShardId = null;
@@ -163,8 +167,10 @@ public class APIClient {
    * @throws ResourceNotFoundException
    * @throws LimitExceededException
    */
-  public CompletableFuture<Optional<List<String>>> getShardIterator(String streamName, ShardIteratorType shardIteratorType) throws ResourceNotFoundException, LimitExceededException {
-    logger.debug(this.debugStreamPrefix(streamName) + "get shard iterator list.");
+  public CompletableFuture<Optional<List<String>>> getShardIterator(final String streamName,
+                                                                    final ShardIteratorType shardIteratorType)
+    throws ResourceNotFoundException, LimitExceededException {
+    logger.debug("get shardIterator. stream: " + streamName + ", type: " + shardIteratorType.toString());
 
     return this.getShardList(streamName)
       .thenApply(shardList -> {
@@ -179,15 +185,14 @@ public class APIClient {
                   return future.get().getShardIterator();
                 } catch (InterruptedException | ExecutionException e) {
                   //e.printStackTrace();
-                  logger.error(this.debugStreamPrefix(streamName) + "failed get shard iterator.");
-                  logger.error(this.debugStreamPrefix(streamName) + e.getMessage());
-                  logger.error(this.debugStreamPrefix(streamName) + e.getCause());
+                  logger.error("failed get shard iterator.");
+                  logger.error(e.getMessage());
                   return null;
                 }
               }
             ).filter(Objects::nonNull).collect(Collectors.toList());
         } else {
-          logger.error(this.debugStreamPrefix(streamName) + "failed get shard list.");
+          logger.error("failed get shard list.");
           shardIteratorList = null;
         }
 
@@ -208,54 +213,54 @@ public class APIClient {
    * @throws ResourceNotFoundException
    * @throws LimitExceededException
    */
-  public CompletableFuture<String> getStreamStatus(String streamName) throws ResourceNotFoundException, LimitExceededException {
-    logger.debug(this.debugStreamPrefix(streamName) + "get stream status");
+  public CompletableFuture<String> getStreamStatus(final String streamName)
+    throws ResourceNotFoundException, LimitExceededException {
+    logger.debug("get stream status. stream: " + streamName);
 
     return CompletableFuture
       .supplyAsync(() -> {
         final String streamStatus = kinesisClient.describeStream(streamName)
           .getStreamDescription()
           .getStreamStatus();
-        logger.debug(this.debugStreamPrefix(streamName) + "status : " + streamStatus);
+        logger.debug("stream status : " + streamStatus);
 
         return streamStatus;
       });
   }
 
-  public boolean isStreamExist(String streamName) throws LimitExceededException {
-    logger.debug(this.debugStreamPrefix(streamName) + "check stream is exist.");
+  public boolean isStreamExist(final String streamName) throws LimitExceededException {
+    logger.debug("check stream is exist. stream: " + streamName);
     try {
       this.getStreamStatus(streamName).get();
     } catch (ResourceNotFoundException e) {
-      logger.error(this.debugStreamPrefix(streamName) + "stream is not exist.");
-      logger.error(this.debugStreamPrefix(streamName) + e.getMessage());
+      logger.error("stream is not exist.");
       return false;
     } catch (InterruptedException | ExecutionException e) {
-      logger.error(this.debugStreamPrefix(streamName) + "get stream status exception");
-      logger.error(this.debugStreamPrefix(streamName) + e.getMessage());
+      logger.error("failed get stream status.");
+      logger.error(e.getMessage());
       return false;
     }
     return true;
   }
 
-  public boolean isNotStreamExist(String streamName) throws LimitExceededException {
+  public boolean isNotStreamExist(final String streamName) throws LimitExceededException {
     return !this.isStreamExist(streamName);
   }
 
-  public boolean isStreamReady(String streamName) throws ResourceNotFoundException, LimitExceededException {
-    logger.debug(this.debugStreamPrefix(streamName) + "check stream is ready.");
+  public boolean isStreamReady(final String streamName) throws ResourceNotFoundException, LimitExceededException {
+    logger.debug("check stream is ready. stream: " + streamName);
 
     try {
       return this.getStreamStatus(streamName).get().equals("ACTIVE");
     } catch (InterruptedException | ExecutionException e) {
-      logger.error(this.debugStreamPrefix(streamName) + "get stream status exception");
-      logger.error(this.debugStreamPrefix(streamName) + e.getMessage());
+      logger.error("failed get stream status.");
+      logger.error(e.getMessage());
       return false;
     }
   }
 
 
-  public boolean isNotStreamReady(String streamName) throws ResourceNotFoundException, LimitExceededException {
+  public boolean isNotStreamReady(final String streamName) throws ResourceNotFoundException, LimitExceededException {
     return !this.isStreamReady(streamName);
   }
 
@@ -296,9 +301,10 @@ public class APIClient {
    * @throws StreamIsNotReadyException
    */
   public void checkStreamReadyIfNotThrow(String streamName) throws StreamIsNotReadyException, ResourceNotFoundException, LimitExceededException {
+    logger.debug("check stream ready with throw. stream: " + streamName);
     if (this.isNotStreamReady(streamName)) {
-      logger.debug(this.debugStreamPrefix(streamName) + "stream is not ready.");
-      throw new StreamIsNotReadyException(this.debugStreamPrefix(streamName) + "stream is not ready.");
+      logger.debug("stream is not ready.");
+      throw new StreamIsNotReadyException("stream is not ready. stream: " + streamName);
     }
   }
 
@@ -316,9 +322,5 @@ public class APIClient {
     StreamIsNotReadyException(String message) {
       super(message);
     }
-  }
-
-  public String debugStreamPrefix(String streamName) {
-    return "[stream::" + streamName + "] ";
   }
 }

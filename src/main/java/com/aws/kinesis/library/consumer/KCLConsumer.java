@@ -1,4 +1,4 @@
-package com.aws.kinesis.kcl;
+package com.aws.kinesis.library.consumer;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;

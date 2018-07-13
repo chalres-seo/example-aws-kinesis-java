@@ -1,11 +1,10 @@
-package com.aws.kinesis.kpl;
+package com.aws.kinesis.library.producer;
 
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.UserRecordResult;
-import com.aws.kinesis.api.APIClientCreator;
 import com.aws.kinesis.record.ProduceRecord;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.utils.record.Tuple2;
+import com.utils.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

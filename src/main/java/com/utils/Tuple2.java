@@ -1,4 +1,4 @@
-package com.utils.record;
+package com.utils;
 
 import java.util.Objects;
 
