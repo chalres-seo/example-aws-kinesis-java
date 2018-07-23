@@ -20,7 +20,24 @@ Example Java library for AWS Kinesis SDK, KCL, KPL
 * Constructor
 
 ```Java
+  /**
+   * Constructor
+   *
+   * @param awsProfile aws account profile name, or use default from AWS CredentialsFactory
+   * @param awsRegion  aws region name. of use default from CredentialsFactory
+   * @param kinesisClient aws sdk kinesis client                   
+   */
+  private ApiClient(final String awsProfile, final String awsRegion, final AmazonKinesisAsync kinesisClient) {
+  ...
+  }
 
+  public ApiClient(final String awsProfile, final String awsRegion) {
+  ...
+  }
+
+  public ApiClient() {
+  ...
+  }
 ```
 
 * Create and delete stream
@@ -32,19 +49,47 @@ Example Java library for AWS Kinesis SDK, KCL, KPL
 * Constructor
 
 ```Java
+  /**
+   * Constructor
+   *
+   * @param apiClient aws sdk kinesis client.
+   * @param streamName unchecked stream name.
+   *
+   * @throws ResourceNotFoundException stream is not exist.
+   */
+  public ApiProducer(final ApiClient apiClient, final String streamName) throws ResourceNotFoundException {
+  ...
+  }
 
+  public ApiProducer(final String streamName) {
+  ...
+  }
 ```
 
 * Produce record interface
 
 ```Java
-
+public interface IRecord<T> {
+  String getPartitionKey();
+  T getValue();
+  ByteBuffer getData();
+  Optional<String> getSequenceNumber();
+}
 ```
 
 * Produce record
 
 ```Java
-
+  /**
+   * Produce records.
+   *
+   * @param records produce records.
+   *
+   * @return produce result, returns a failure if an error occurs while producing record.
+   */
+  public boolean produce(final List<IRecord> records) {
+  ...
+  }
 ```
 
 * Stop
@@ -56,13 +101,43 @@ Produce stop when all records produced or receive interrupt signal
 * Constructor
 
 ```Java
+  /**
+   * Constructor
+   *
+   * @param apiClient aws kinesis sdk client. otherwise create default client.
+   * @param streamName unchecked stream name.
+   *
+   * @throws ResourceNotFoundException stream is not exist.
+   */
+  public ApiConsumer(@NotNull final ApiClient apiClient, final String streamName) throws ResourceNotFoundException {
+  ...
+  }
 
+  public ApiConsumer(final String streamName) {
+  ...
+  }
 ```
 
 * Consume record
 
 ```Java
+  /**
+   * Start point consumer.
+   *
+   * Consumer count is equal to shard count * handler count.
+   *
+   * @param intervalMillis consume interval millis.
+   * @param handlers consume records handler list.
+   *
+   * @return consume loop future list.
+   */
+  public List<CompletableFuture<Void>> consume(final ShardIteratorType shardIteratorType, final long intervalMillis, final IRecordsHandler handler, final IRecordsHandler... handlers) {
+  ...
+  }
 
+  public List<CompletableFuture<Void>> consume(@NotNull final ShardIteratorType shardIteratorType, final IRecordsHandler handler, final IRecordsHandler... handlers) {
+  ...
+  }
 ```
 
 * Stop
@@ -74,13 +149,25 @@ Consumer stop when receive interrupt signal
 * Constructor
 
 ```Java
+  private KplProducer(String profile, String region, String streamName, KinesisProducer kinesisProducer) {
+  ...
+  }
 
+  public KplProducer(final String profile, final String region, final String streamName) {
+  ...
+  }
+
+  public KplProducer(final String streamName) {
+  ...
+  }
 ```
 
 * Produce record
 
 ```Java
-
+  public boolean produce(final List<IRecord> records) {
+  ...
+  }
 ```
 
 * Stop
@@ -92,13 +179,45 @@ Produce stop when all records produced or receive interrupt signal
 * Constructor
 
 ```Java
+  /**
+   * Constructor
+   *
+   * @param regionName aws region name.
+   * @param streamName aws kinesis stream name.
+   * @param appName aws kinesis client library app name. (= dynamodb table name)
+   * @param recordProcessorFactory consume record factory.
+   * @param awsProfileName aws profile name.
+   *
+   * @throws UnknownHostException failed create an kinesis client library app-Id.
+   */
+  private KclConsumer(String regionName,
+                     String streamName,
+                     String appName,
+                     IRecordProcessorFactory recordProcessorFactory,
+                     String awsProfileName) throws UnknownHostException {
+  ...
+  }
 
+  public KclConsumer(String regionName,
+                     String streamName,
+                     String appName,
+                     IRecordProcessorFactory recordProcessorFactory) throws UnknownHostException {
+  ...
+  }
+
+  public KclConsumer(String streamName,
+                     String appName,
+                     IRecordProcessorFactory recordProcessorFactory) throws UnknownHostException {
+  ...
+  }
 ```
 
 * Consume record
 
 ```Java
-
+  public CompletableFuture<Void> consume() {
+  ...
+  }
 ```
 
 * Stop
@@ -106,7 +225,9 @@ Produce stop when all records produced or receive interrupt signal
 Consumer stop when receive interrupt signal.
 
 ```Java
-
+  public Future<Boolean> startGracefulShutdown() {
+  ...
+  }
 ```
 
 Before the app shuts down, you can use the gracefullShutdown method to clean up the consumer daemon.

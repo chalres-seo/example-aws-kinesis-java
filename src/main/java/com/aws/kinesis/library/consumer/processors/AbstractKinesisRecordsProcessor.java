@@ -8,17 +8,22 @@ import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
 import com.amazonaws.services.kinesis.model.Record;
+import com.aws.kinesis.record.handler.IRecordsHandler;
+import com.sun.istack.internal.NotNull;
+import com.utils.AppConfig;
+import com.utils.AppUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-abstract public class AbstractIStringRecordProcessor implements IStringRecordProcessorImpl {
-  private static final long BACKOFF_TIME_IN_MILLIS = 3000L;
-  private static final int NUM_RETRIES = 10;
-  private static final long CHECKPOINT_INTERVAL_MILLIS = 60000L;
+abstract public class AbstractKinesisRecordsProcessor implements IKinesisRecordsProcessorImpl {
+  private static final Logger logger = LoggerFactory.getLogger(AbstractKinesisRecordsProcessor.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractIStringRecordProcessor.class);
+  //private ConcurrentHashMap<String, Object> status = new java.util.concurrent.ConcurrentHashMap<String, Object>();
 
   private long nextCheckpointTimeInMillis;
   private String kinesisShardId;
@@ -37,48 +42,29 @@ abstract public class AbstractIStringRecordProcessor implements IStringRecordPro
 
     // Process records and perform all exception handling.
     processRecordsWithRetries(records);
+
     // Checkpoint once every checkpoint interval.
     if (System.currentTimeMillis() > nextCheckpointTimeInMillis) {
       checkpoint(checkpointer);
-      nextCheckpointTimeInMillis = System.currentTimeMillis() + CHECKPOINT_INTERVAL_MILLIS;
+      nextCheckpointTimeInMillis = System.currentTimeMillis() + AppConfig.getKclCheckPointIntervalMillis();
     }
+
   }
 
   @Override
   public void shutdown(ShutdownInput shutdownInput) {
-    final IRecordProcessorCheckpointer checkpointer = shutdownInput.getCheckpointer();
-    final ShutdownReason reason = shutdownInput.getShutdownReason();
+    IRecordProcessorCheckpointer checkpointer = shutdownInput.getCheckpointer();
+    ShutdownReason shutdownReason = shutdownInput.getShutdownReason();
 
-    logger.info("Shutting down record processor for shard: " + kinesisShardId);
-    // Important to checkpoint after reaching end of shard, so we can start processing data from child shards.
-    if (reason == ShutdownReason.TERMINATE) {
+    logger.debug("shutting down record processor. " +
+      "processor: " + this.getClass().getCanonicalName() + ", " +
+      "shard: " + kinesisShardId + ", " +
+      "reson: " + shutdownReason);
+
+    if (shutdownReason == ShutdownReason.TERMINATE) {
       checkpoint(checkpointer);
     }
   }
-
-  @Override
-  public void processRecordsWithRetries(List<Record> records) {
-    for (Record record : records) {
-      boolean processedSuccessfully = false;
-      for (int i = 0; i < NUM_RETRIES; i++) {
-        try {
-          // Logic to process record goes here.
-          processSingleRecord(record);
-          processedSuccessfully = true;
-          break;
-        } catch (Throwable t) {
-          logger.warn("Caught throwable while processing record " + record, t);
-        }
-        // backoff if we encounter an exception.
-        backoff();
-      }
-      if (!processedSuccessfully) {
-        logger.error("Couldn't process record. Skipping the record.");
-        logger.error("skipped record : " + record);
-      }
-    }
-  }
-
 
   /** Checkpoint with retries.
    *
@@ -87,38 +73,48 @@ abstract public class AbstractIStringRecordProcessor implements IStringRecordPro
   public void checkpoint(IRecordProcessorCheckpointer checkpointer) {
     logger.info("Checkpointing shard " + kinesisShardId);
 
-    for (int i = 0; i < NUM_RETRIES; i++) {
+    for (int i = 0; i < AppConfig.getRetryAttemptCount(); i++) {
       try {
         checkpointer.checkpoint();
         break;
-      } catch (ShutdownException se) {
+      } catch (ShutdownException e) {
         // Ignore checkpoint if the processor instance has been shutdown (fail over).
-        logger.info("Caught shutdown exception, skipping checkpoint.", se);
+        logger.warn("Caught shutdown exception, skipping checkpoint.");
         break;
       } catch (ThrottlingException e) {
         // Backoff and re-attempt checkpoint upon transient failures
-        if (i >= (NUM_RETRIES - 1)) {
+        if (i >= (AppConfig.getRetryAttemptCount() - 1)) {
           logger.error("Checkpoint failed after " + (i + 1) + "attempts.", e);
           break;
         } else {
-          logger.info("Transient issue when checkpointing - attempt " + (i + 1) + " of "
-            + NUM_RETRIES, e);
+          logger.debug("Transient issue when checkpointing - attempt " + (i + 1) + " of "
+            + AppConfig.getRetryAttemptCount());
+          logger.debug(e.getMessage());
         }
       } catch (com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException e) {
         // This indicates an issue with the DynamoDB table (check for table, provisioned IOPS).
         logger.error("Cannot save checkpoint to the DynamoDB table used by the Amazon Kinesis Client Library.", e);
         break;
       }
-      backoff();
+      AppUtils.backoff("check point.");
     }
   }
 
-  public void backoff() {
-    try {
-      Thread.sleep(BACKOFF_TIME_IN_MILLIS);
-    } catch (InterruptedException e) {
-      logger.debug("Interrupted sleep", e);
+  public List<IRecordsHandler> getCheckedHandlerList(@NotNull IRecordsHandler[] handlers) {
+    final List<IRecordsHandler> handlerList = new ArrayList<>();
+
+    int handlerCount = 0;
+    for (IRecordsHandler handler : handlers) {
+      if (handler != null) {
+        handlerCount++;
+        handlerList.add(handler);
+      }
     }
+
+    if (handlerCount != handlers.length) {
+      logger.error("there is null point handler. handler count: " + handlerCount + "/" + handlers.length);
+    }
+    return handlerList;
   }
 
   public String getShardId() {

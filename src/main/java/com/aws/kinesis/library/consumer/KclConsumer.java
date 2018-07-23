@@ -8,6 +8,7 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionIn
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
 import com.aws.credentials.CredentialsFactory;
+import com.utils.AppConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public final class KCLConsumer {
-  private static final Logger logger = LoggerFactory.getLogger(KCLConsumer.class);
+public final class KclConsumer {
+  private static final Logger logger = LoggerFactory.getLogger(KclConsumer.class);
 
   private static final InitialPositionInStream initialStreamPosition = InitialPositionInStream.LATEST;
 
@@ -32,15 +33,18 @@ public final class KCLConsumer {
   private final KinesisClientLibConfiguration kinesisClientLibConfiguration;
   private final String workerId;
 
-
-  public KCLConsumer(String regionName,
-                     String streamName,
-                     String appName,
-                     IRecordProcessorFactory recordProcessorFactory) throws UnknownHostException {
-    this(regionName, streamName, appName, recordProcessorFactory, "default");
-  }
-
-  public KCLConsumer(String regionName,
+  /**
+   * Constructor
+   *
+   * @param regionName aws region name.
+   * @param streamName aws kinesis stream name.
+   * @param appName aws kinesis client library app name. (= dynamodb table name)
+   * @param recordProcessorFactory consume record factory.
+   * @param awsProfileName aws profile name.
+   *
+   * @throws UnknownHostException failed create an kinesis client library app-Id.
+   */
+  private KclConsumer(String regionName,
                      String streamName,
                      String appName,
                      IRecordProcessorFactory recordProcessorFactory,
@@ -64,11 +68,41 @@ public final class KCLConsumer {
       .recordProcessorFactory(this.recordProcessorFactory)
       .config(this.kinesisClientLibConfiguration)
       .build();
+  }
 
+  public KclConsumer(String regionName,
+                     String streamName,
+                     String appName,
+                     IRecordProcessorFactory recordProcessorFactory) throws UnknownHostException {
+    this(regionName, streamName, appName, recordProcessorFactory, AppConfig.getAwsProfile());
+  }
+
+  public KclConsumer(String streamName,
+                     String appName,
+                     IRecordProcessorFactory recordProcessorFactory) throws UnknownHostException {
+    this(AppConfig.getAwsRegion(), streamName, appName, recordProcessorFactory, AppConfig.getAwsProfile());
   }
 
   public CompletableFuture<Void> consume() {
     return CompletableFuture.runAsync(this::consumeRecords);
+  }
+
+  private void consumeRecords() {
+    logger.debug("consumer start. appName: " + appName + ", stream: " + streamName + ", worker: " + workerId);
+
+    int exitCode = 0;
+
+    try {
+      worker.run();
+    } catch (Throwable t) {
+      logger.error("Caught throwable while processing data.");
+      logger.error(t.getMessage(), t);
+      exitCode = 1;
+    }
+
+    logger.debug("shut down consumer workers. exit code: " + exitCode);
+
+    //System.exit(exitCode);
   }
 
   public boolean hasGracefulShutdownStarted() {
@@ -79,29 +113,13 @@ public final class KCLConsumer {
     return worker.startGracefulShutdown();
   }
 
-  private void consumeRecords() {
-    logger.info("Running {} to process stream {} as worker {}...\n", appName, streamName, workerId);
-
-    int exitCode = 0;
-
-    try {
-      worker.run();
-    } catch (Throwable t) {
-      System.err.println("Caught throwable while processing data.");
-      t.printStackTrace();
-      exitCode = 1;
-    }
-
-    System.exit(exitCode);
-  }
-
   public void deleteResources() {
     AmazonDynamoDB dynamoDB = AmazonDynamoDBClientBuilder.standard()
       .withCredentials(credentialsProvider)
       .withRegion(regionName)
       .build();
 
-    logger.info("Deleting the Amazon DynamoDB table used by the Amazon Kinesis Client Library. Table Name = %s.\n", appName);
+    logger.debug("Deleting the Amazon DynamoDB table used by the Amazon Kinesis Client Library. Table Name: " + appName);
     try {
       dynamoDB.deleteTable(appName);
     } catch (com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException ex) {

@@ -1,12 +1,16 @@
 package com.aws.kinesis.record;
 
 import com.amazonaws.services.kinesis.model.Record;
-import com.utils.AppUtils;
+import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -16,51 +20,53 @@ import java.util.Optional;
 public class StringRecord implements IRecord<String> {
   private static final Logger logger = LoggerFactory.getLogger(StringRecord.class);
 
+  private static final CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+  private static final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+
   private final String partitionKey;
-  private final ByteBuffer readOnlyBytebuffer;
+  private final ByteBuffer data;
+  private final String value;
   private final String sequenceNumber;
-  private final String data;
 
-  public StringRecord(String partitionKey, ByteBuffer bytebuffer, String sequenceNumber, String data) {
+  private StringRecord(String partitionKey, ByteBuffer data, String value, String sequenceNumber) {
     this.partitionKey = partitionKey;
-    this.readOnlyBytebuffer = AppUtils.copyNewReadOnlyByteBuffer(bytebuffer);
-    this.sequenceNumber = sequenceNumber;
     this.data = data;
+    this.value = value;
+    this.sequenceNumber = sequenceNumber;
   }
 
-  public StringRecord(String partitionKey, ByteBuffer bytebuffer, String sequenceNumber) throws CharacterCodingException {
+  public StringRecord(String partitionKey, ByteBuffer data, String sequenceNumber) throws CharacterCodingException {
     this(partitionKey,
-      bytebuffer,
-      sequenceNumber,
-      AppUtils.byteBufferToString(bytebuffer));
+      data,
+      byteBufferToString(data),
+      sequenceNumber);
   }
 
-  public StringRecord(String partitionKey, ByteBuffer bytebuffer) throws CharacterCodingException {
+  public StringRecord(String partitionKey, String value, String sequenceNumber) throws CharacterCodingException {
     this(partitionKey,
-      bytebuffer,
-      null,
-      AppUtils.byteBufferToString(bytebuffer));
+      stringToByteBuffer(value),
+      value,
+      sequenceNumber);
   }
 
-  public StringRecord(String partitionKey, String sequenceNumber, String data) throws CharacterCodingException {
+  public StringRecord(String partitionKey, ByteBuffer data) throws CharacterCodingException {
     this(partitionKey,
-      AppUtils.stringToByteBuffer(data),
-      sequenceNumber,
-      data);
+      data,
+      byteBufferToString(data),
+      null);
   }
 
-  public StringRecord(String partitionKey, String data) throws CharacterCodingException {
-    this(partitionKey, (String) null, data);
+  public StringRecord(String partitionKey, String value) throws CharacterCodingException {
+    this(partitionKey,
+      stringToByteBuffer(value),
+      value,
+      null);
   }
 
-  public StringRecord(Record record) throws CharacterCodingException {
-    ByteBuffer copyReadOnlyByteByffer = record.getData().asReadOnlyBuffer();
-    copyReadOnlyByteByffer.rewind();
-
-    this.partitionKey = record.getPartitionKey();
-    this.readOnlyBytebuffer = copyReadOnlyByteByffer;
-    this.sequenceNumber = record.getSequenceNumber();
-    this.data = AppUtils.byteBufferToString(copyReadOnlyByteByffer);
+  public StringRecord(@NotNull Record kinesisRecord) throws CharacterCodingException {
+    this(kinesisRecord.getPartitionKey(),
+      kinesisRecord.getData(),
+      kinesisRecord.getSequenceNumber());
   }
 
   @Override
@@ -69,15 +75,12 @@ public class StringRecord implements IRecord<String> {
   }
 
   @Override
-  public String getData() {
-    return this.data;
+  public String getValue() {
+    return this.value;
   }
 
   @Override
-  public ByteBuffer getByteBuffer() {
-    this.readOnlyBytebuffer.rewind();
-    return this.readOnlyBytebuffer;
-  }
+  public ByteBuffer getData() { return this.data; }
 
   @Override
   public Optional<String> getSequenceNumber() {
@@ -85,28 +88,12 @@ public class StringRecord implements IRecord<String> {
   }
 
   @Override
-  public Record getKinesisRecord() {
-    readOnlyBytebuffer.rewind();
-
-    if (sequenceNumber == null) {
-      return new Record()
-        .withPartitionKey(this.partitionKey)
-        .withData(this.readOnlyBytebuffer);
-    } else {
-      return new Record()
-        .withPartitionKey(this.partitionKey)
-        .withData(this.readOnlyBytebuffer)
-        .withSequenceNumber(this.sequenceNumber);
-    }
-  }
-
-  @Override
   public String toString() {
     return "StringRecord{" +
       "partitionKey='" + partitionKey + '\'' +
-      ", readOnlyBytebuffer=" + readOnlyBytebuffer +
+      ", data=" + data +
+      ", value='" + value + '\'' +
       ", sequenceNumber='" + sequenceNumber + '\'' +
-      ", data='" + data + '\'' +
       '}';
   }
 
@@ -114,16 +101,31 @@ public class StringRecord implements IRecord<String> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+
     StringRecord that = (StringRecord) o;
-    return Objects.equals(partitionKey, that.partitionKey) &&
-      Objects.equals(readOnlyBytebuffer, that.readOnlyBytebuffer) &&
-      Objects.equals(sequenceNumber, that.sequenceNumber) &&
-      Objects.equals(data, that.data);
+
+    return
+      this.partitionKey.equals(that.getPartitionKey()) &&
+      this.getData().equals(that.getData()) &&
+      this.getSequenceNumber().equals(that.getSequenceNumber()) &&
+      this.getValue().equals(that.getValue());
   }
 
   @Override
   public int hashCode() {
+    return Objects.hash(partitionKey, data, sequenceNumber, data);
+  }
 
-    return Objects.hash(partitionKey, readOnlyBytebuffer, sequenceNumber, data);
+  @NotNull
+  private static ByteBuffer stringToByteBuffer(String string) throws CharacterCodingException {
+    return encoder.encode(CharBuffer.wrap(string));
+  }
+
+  @NotNull
+  private static String byteBufferToString(ByteBuffer byteBuffer) throws CharacterCodingException {
+    final ByteBuffer readOnlyByteBuffer = byteBuffer.asReadOnlyBuffer();
+    readOnlyByteBuffer.rewind();
+
+    return decoder.decode(readOnlyByteBuffer).toString();
   }
 }

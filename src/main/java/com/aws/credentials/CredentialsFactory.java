@@ -3,19 +3,15 @@ package com.aws.credentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.aws.kinesis.api.APIClientCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CredentialsFactory {
-  private static String defaultUserProfile = "default";
-  private static String defaultRegionName = "ap-northeast-2";
+  private static final Logger logger = LoggerFactory.getLogger(CredentialsFactory.class);
 
-  private static Logger logger = LoggerFactory.getLogger(APIClientCreator.class);
-
-  private static ConcurrentHashMap<String, AWSCredentialsProvider> credentialsProviderList = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String, AWSCredentialsProvider> credentialsProviderList = new ConcurrentHashMap<>();
 
   private CredentialsFactory() {}
 
@@ -56,13 +52,5 @@ public class CredentialsFactory {
 
   public void refreshAllCredentialsProvider() {
     credentialsProviderList.forEach((profileName, provider) -> provider.refresh());
-  }
-
-  public String getDefaultUserProfile() {
-    return defaultUserProfile;
-  }
-
-  public String getDefaultRegionName() {
-    return defaultRegionName;
   }
 }

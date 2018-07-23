@@ -13,25 +13,25 @@ import java.util.concurrent.ConcurrentHashMap;
  * AWS SDK Kinesis Client Creator
  *
  */
-public class APIClientCreator {
-  private static Logger logger = LoggerFactory.getLogger(APIClientCreator.class);
+public class KinesisSdkClientFactory {
+  private static Logger logger = LoggerFactory.getLogger(KinesisSdkClientFactory.class);
 
-  private static final String DEFAULT_PROFILE = AppConfig.getAwsProfile();
-  private static final String DEFAULT_REGION = AppConfig.getAwsRegion();
+  private static final String awsProfile = AppConfig.getAwsProfile();
+  private static final String awsRegion = AppConfig.getAwsRegion();
 
   private static ConcurrentHashMap<String, AmazonKinesisAsync> kinesisAsyncClientList = new ConcurrentHashMap<>();
 
-  private APIClientCreator() {}
+  private KinesisSdkClientFactory() {}
 
-  public static APIClientCreator getInstance() {
+  public static KinesisSdkClientFactory getInstance() {
     return LazyHolder.INSTANCE;
   }
 
   private static class LazyHolder {
-    private static final APIClientCreator INSTANCE = new APIClientCreator();
+    private static final KinesisSdkClientFactory INSTANCE = new KinesisSdkClientFactory();
   }
 
-  private AmazonKinesisAsync createAPIClient(final String awsProfileName, final String awsRegionName) {
+  private AmazonKinesisAsync create(final String awsProfileName, final String awsRegionName) {
     logger.debug("get kinesis async client. profile: " + awsProfileName + ", region: " + awsRegionName);
 
     return AmazonKinesisAsyncClientBuilder
@@ -41,19 +41,19 @@ public class APIClientCreator {
       .build();
   }
 
-  private AmazonKinesisAsync createAPIClient() {
-    return this.createAPIClient(DEFAULT_PROFILE, DEFAULT_REGION);
+  private AmazonKinesisAsync create() {
+    return this.create(awsProfile, awsRegion);
   }
 
-  public AmazonKinesisAsync getAPIClient(final String awsProfileName, final String awsRegionName) {
+  public AmazonKinesisAsync get(final String awsProfileName, final String awsRegionName) {
     logger.debug("get kinesis async client. profile: " + awsProfileName + ", region: " + awsRegionName);
 
     return kinesisAsyncClientList
-      .computeIfAbsent(awsProfileName + "::" + awsRegionName, k -> createAPIClient(awsProfileName, awsRegionName));
+      .computeIfAbsent(awsProfileName + "::" + awsRegionName, k -> create(awsProfileName, awsRegionName));
   }
 
-  public AmazonKinesisAsync getAPIClient() {
-    return this.getAPIClient(DEFAULT_PROFILE, DEFAULT_REGION);
+  public AmazonKinesisAsync get() {
+    return this.get(awsProfile, awsRegion);
   }
 
 

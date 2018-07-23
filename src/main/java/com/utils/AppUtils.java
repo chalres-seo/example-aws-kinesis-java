@@ -1,16 +1,13 @@
 package com.utils;
 
+import com.aws.kinesis.record.IRecord;
 import com.aws.kinesis.record.StringRecord;
+import com.sun.istack.internal.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,9 +17,10 @@ import java.util.List;
 public class AppUtils {
   private static final Logger logger = LoggerFactory.getLogger(AppUtils.class);
 
-  private static final CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
-  private static final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+  private static long BACKOFF_TIME_IN_MILLIS = AppConfig.getRetryBackoffTimeInMillis();
+  private static int RETRY_COUNT = AppConfig.getRetryAttemptCount();
 
+  // Singleton >>
   private AppUtils() {}
 
   private static class LazyHolder {
@@ -32,8 +30,9 @@ public class AppUtils {
   public static AppUtils getInstance() {
     return AppUtils.LazyHolder.INSTANCE;
   }
+  // << Singleton
 
-  public static boolean checkDirAndIfNotExistCreate(String filePathString) {
+  public static boolean checkDirAndIfNotExistCreate(final String filePathString) {
     logger.debug("check file path and create.");
     final Path createDirPath = Paths.get(filePathString).getParent();
 
@@ -54,45 +53,31 @@ public class AppUtils {
     }
   }
 
-  /**
-   *
-   * @param string
-   * @return
-   * @throws CharacterCodingException
-   */
-  public static ByteBuffer stringToByteBuffer(String string) throws CharacterCodingException {
-    return encoder.encode(CharBuffer.wrap(string)).asReadOnlyBuffer();
+  public static void backoff(@Nullable final String msg, final long backoffMillis) {
+    try {
+      logger.debug("backoff " + backoffMillis + " millis, " + msg);
+      if (backoffMillis < 0) {
+        Thread.sleep(BACKOFF_TIME_IN_MILLIS);
+      } else {
+        Thread.sleep(backoffMillis);
+      }
+    } catch (InterruptedException e) {
+      logger.error("backoff interrupted sleep", e);
+      logger.error(e.getMessage());
+    }
   }
+  public static void backoff(final String msg) { backoff(msg, BACKOFF_TIME_IN_MILLIS); }
 
-  /**
-   *
-   * @param byteBuffer
-   * @return
-   * @throws CharacterCodingException
-   */
-  public static String byteBufferToString(ByteBuffer byteBuffer) throws CharacterCodingException {
-    final ByteBuffer readOnlyByteBuffer = byteBuffer.asReadOnlyBuffer();
+  public static void backoff(long backoffMillis) { backoff(null, backoffMillis); }
 
-    readOnlyByteBuffer.rewind();
-    final String decodeString = decoder.decode(readOnlyByteBuffer).toString();
-    readOnlyByteBuffer.rewind();
+  public static void backoff() { backoff(BACKOFF_TIME_IN_MILLIS); }
 
-    return decodeString;
-  }
-
-  public static ByteBuffer copyNewReadOnlyByteBuffer(ByteBuffer byteBuffer) {
-    final ByteBuffer copy = byteBuffer.asReadOnlyBuffer();
-    copy.rewind();
-
-    return copy;
-  }
-
-  public static List<StringRecord> createExampleRecords(int recordCount) {
+  public static List<IRecord> createExampleRecords(final int recordCount) {
     logger.debug("create example records. count: " + recordCount);
-    final ArrayList<StringRecord> exampleRecords = new ArrayList<>(recordCount);
+    final ArrayList<IRecord> exampleRecords = new ArrayList<>(recordCount);
     for(int i = 1; i <= recordCount; i++) {
       try {
-        final StringRecord createRecord = new StringRecord("pk-" + i, "data-" + i);
+        final IRecord createRecord = new StringRecord("pk-" + i, "data-" + i);
 //        logger.debug(String.format("create example record. record: StringRecord(pk-%s, data-%s)", i, i));
 //        exampleRecords.add(new StringRecord("pk-" + i, "data-" + i));
         logger.debug("create example record. record: " + createRecord.toString());
