@@ -255,15 +255,6 @@ Test process
 3. Re-reading them and outputting to the screen and writing to the file in example dir (Consumer)
 4. If the log message is too busy, modify the log level (by logback)
 
-#### Run example by gradlew
-
-- run example library mode : ./gradlew task library
-- run example api mode : ./gradlew task api
-
-#### Run example by jar
-
-- run example library mode : java -jar ./build/libs/aws-kinesis-lib-java-1.0-SNAPSHOT.jar library
-- run example api mode : java -jar ./build/libs/aws-kinesis-lib-java-1.0-SNAPSHOT.jar api
 
 [SDK API Doc]:  https://docs.aws.amazon.com/kinesis/latest/APIReference/Welcome.html
 
