@@ -40,3 +40,5 @@ gradle-app.setting
 
 .gradle/
 .idea/
+/out/
+/tmp/
