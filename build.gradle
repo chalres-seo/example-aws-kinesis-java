@@ -38,14 +38,7 @@ jar {
 }
 
 task(api, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.apps.ExampleSdkApiAppMain'
-    classpath = sourceSets.main.runtimeClasspath
-    args '', ''
-    systemProperty '', ''
-}
-
-task(library, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.apps.ExampleLibraryAppMain'
+    main = 'com.apps.ExampleAppMain'
     classpath = sourceSets.main.runtimeClasspath
     args '', ''
     systemProperty '', ''
