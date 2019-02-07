@@ -9,7 +9,6 @@ import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
 import com.amazonaws.services.kinesis.model.Record;
 import com.aws.kinesis.record.handler.IRecordsHandler;
-import com.sun.istack.internal.NotNull;
 import com.utils.AppConfig;
 import com.utils.AppUtils;
 import org.slf4j.Logger;
@@ -100,7 +99,7 @@ abstract public class AbstractKinesisRecordsProcessor implements IKinesisRecords
     }
   }
 
-  public List<IRecordsHandler> getCheckedHandlerList(@NotNull IRecordsHandler[] handlers) {
+  public List<IRecordsHandler> getCheckedHandlerList(IRecordsHandler[] handlers) {
     final List<IRecordsHandler> handlerList = new ArrayList<>();
 
     int handlerCount = 0;

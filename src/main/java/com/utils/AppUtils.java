@@ -2,7 +2,6 @@ package com.utils;
 
 import com.aws.kinesis.record.IRecord;
 import com.aws.kinesis.record.StringRecord;
-import com.sun.istack.internal.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +52,7 @@ public class AppUtils {
     }
   }
 
-  public static void backoff(@Nullable final String msg, final long backoffMillis) {
+  public static void backoff(final String msg, final long backoffMillis) {
     try {
       logger.debug("backoff " + backoffMillis + " millis, " + msg);
       if (backoffMillis < 0) {

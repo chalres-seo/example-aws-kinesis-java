@@ -4,8 +4,6 @@ import com.amazonaws.services.kinesis.model.*;
 import com.aws.kinesis.api.ApiClient;
 import com.aws.kinesis.record.handler.HandlerFactory;
 import com.aws.kinesis.record.handler.IRecordsHandler;
-import com.sun.istack.internal.NotNull;
-import com.sun.istack.internal.Nullable;
 import com.utils.AppConfig;
 import com.utils.AppUtils;
 import org.slf4j.Logger;
@@ -40,7 +38,7 @@ public class ApiConsumer {
    *
    * @throws ResourceNotFoundException stream is not exist.
    */
-  public ApiConsumer(@NotNull final ApiClient apiClient, final String streamName) throws ResourceNotFoundException {
+  public ApiConsumer(final ApiClient apiClient, final String streamName) throws ResourceNotFoundException {
     this.apiClient = apiClient;
     this.streamName = streamName;
 
@@ -88,7 +86,7 @@ public class ApiConsumer {
     return jobFutures;
   }
 
-  public List<CompletableFuture<Void>> consume(@NotNull final ShardIteratorType shardIteratorType, final IRecordsHandler handler, final IRecordsHandler... handlers) {
+  public List<CompletableFuture<Void>> consume(final ShardIteratorType shardIteratorType, final IRecordsHandler handler, final IRecordsHandler... handlers) {
     return this.consume(shardIteratorType, INTERVAL_TIME_MILLIS, handler, handlers);
   }
 
@@ -99,7 +97,7 @@ public class ApiConsumer {
    *
    * @return validated handler list.
    */
-  private List<IRecordsHandler> getCheckedHandlerList(@NotNull IRecordsHandler[] handlers) {
+  private List<IRecordsHandler> getCheckedHandlerList(IRecordsHandler[] handlers) {
     final List<IRecordsHandler> handlerList = new ArrayList<>();
 
     int handlerCount = 0;
@@ -133,9 +131,9 @@ public class ApiConsumer {
    * @return job future list.
    */
   private List<CompletableFuture<Void>> getConsumeJob(final long intervalMillis,
-                                                      @NotNull final Shard shard,
-                                                      @NotNull ShardIteratorType shardIteratorType,
-                                                      @NotNull final List<IRecordsHandler> handlers) {
+                                                      final Shard shard,
+                                                      ShardIteratorType shardIteratorType,
+                                                      final List<IRecordsHandler> handlers) {
     logger.debug("get consume job. stream name: " + streamName + ", shardId: " + shard.getShardId() + ", handler count: " + handlers.size());
     final List<CompletableFuture<Void>> taskFutures = new ArrayList<>(handlers.size());
 
@@ -164,11 +162,10 @@ public class ApiConsumer {
    *
    * @return task future list.
    */
-  @Nullable
   private CompletableFuture<Void> getConsumeTask(final long intervalMillis,
-                                                 @NotNull final Shard shard,
-                                                 @NotNull ShardIteratorType shardIteratorType,
-                                                 @NotNull final IRecordsHandler handler) {
+                                                 final Shard shard,
+                                                 ShardIteratorType shardIteratorType,
+                                                 final IRecordsHandler handler) {
     logger.debug("get consume task. stream name: " + streamName + ", shardId: " + shard.getShardId() + ", handler: " + handler.getClass().getName());
 
     Optional<String> getShardIterator = apiClient.getShardIterator(streamName, shard, shardIteratorType);
@@ -191,8 +188,8 @@ public class ApiConsumer {
    * @return task runnable task loop.
    */
   private Runnable taskLoop(final long intervalMillis,
-                            @NotNull final String startShardIterator,
-                            @NotNull final IRecordsHandler handler) {
+                            final String startShardIterator,
+                            final IRecordsHandler handler) {
     logger.debug("consume loop start. stream name: " + streamName + ", shard-iterator: " + startShardIterator +
       ", handler: " + handler.getClass().getName());
 

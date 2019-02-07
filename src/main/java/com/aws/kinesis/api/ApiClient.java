@@ -2,7 +2,6 @@ package com.aws.kinesis.api;
 
 import com.amazonaws.services.kinesis.AmazonKinesisAsync;
 import com.amazonaws.services.kinesis.model.*;
-import com.sun.istack.internal.Nullable;
 import com.utils.AppConfig;
 import com.utils.AppUtils;
 
@@ -127,7 +126,7 @@ public class ApiClient {
    * @return stream description.
    */
   public Optional<StreamDescription> getStreamDesc(final String streamName,
-                                                   @Nullable final String exclusiveStartShardId) {
+                                                   final String exclusiveStartShardId) {
     logger.debug("get stream description. name: " + streamName);
 
     for (int retryCount = 1; retryCount <= MAX_RETRY_COUNT; retryCount++) {

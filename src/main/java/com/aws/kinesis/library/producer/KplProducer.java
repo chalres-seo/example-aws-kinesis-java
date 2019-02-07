@@ -8,7 +8,6 @@ import com.aws.kinesis.record.IRecord;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.sun.istack.internal.Nullable;
 import com.utils.AppConfig;
 import com.utils.AppUtils;
 import com.utils.Tuple2;
@@ -51,7 +50,7 @@ public final class KplProducer {
         .setCredentialsProvider(CredentialsFactory.getInstance().getCredentialsProvider(AppConfig.getAwsProfile()))));
   }
 
-  private ListenableFuture<UserRecordResult> produceSingleRecord(final IRecord record, @Nullable final FutureCallback<UserRecordResult> callback) {
+  private ListenableFuture<UserRecordResult> produceSingleRecord(final IRecord record, final FutureCallback<UserRecordResult> callback) {
     logger.debug("add user record. stream: " + streamName + ", record: " + record.toString());
 
     ListenableFuture<UserRecordResult> addUserRecordFuture = kinesisProducer.addUserRecord(streamName, record.getPartitionKey(), record.getData());

@@ -1,7 +1,6 @@
 package com.aws.kinesis.record;
 
 import com.amazonaws.services.kinesis.model.Record;
-import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +62,7 @@ public class StringRecord implements IRecord<String> {
       null);
   }
 
-  public StringRecord(@NotNull Record kinesisRecord) throws CharacterCodingException {
+  public StringRecord(Record kinesisRecord) throws CharacterCodingException {
     this(kinesisRecord.getPartitionKey(),
       kinesisRecord.getData(),
       kinesisRecord.getSequenceNumber());
@@ -116,12 +115,10 @@ public class StringRecord implements IRecord<String> {
     return Objects.hash(partitionKey, data, sequenceNumber, data);
   }
 
-  @NotNull
   private static ByteBuffer stringToByteBuffer(String string) throws CharacterCodingException {
     return encoder.encode(CharBuffer.wrap(string));
   }
 
-  @NotNull
   private static String byteBufferToString(ByteBuffer byteBuffer) throws CharacterCodingException {
     final ByteBuffer readOnlyByteBuffer = byteBuffer.asReadOnlyBuffer();
     readOnlyByteBuffer.rewind();

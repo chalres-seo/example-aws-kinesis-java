@@ -3,7 +3,6 @@ package com.aws.kinesis.api.producer;
 import com.amazonaws.services.kinesis.model.*;
 import com.aws.kinesis.api.ApiClient;
 import com.aws.kinesis.record.IRecord;
-import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,8 +77,8 @@ public class ApiProducer {
     }
   }
 
-  private List<PutRecordsRequestEntry> getFailedPutRecordsRequestEntryList(@NotNull final PutRecordsRequest putRecordsRequest,
-                                                                           @NotNull final PutRecordsResult putRecordsResult) {
+  private List<PutRecordsRequestEntry> getFailedPutRecordsRequestEntryList(final PutRecordsRequest putRecordsRequest,
+                                                                           final PutRecordsResult putRecordsResult) {
     logger.debug("get failed PutRecordsRequestEntryList. " +
       "request count: " + putRecordsRequest.getRecords().size() + ", " +
       "failed count: " + putRecordsResult.getRecords().stream()
@@ -102,13 +101,13 @@ public class ApiProducer {
     return failedPutRecordsRequestEntryList;
   }
 
-  private List<PutRecordsRequestEntry> toPutRecordsRequestEntryList(@NotNull List<IRecord> records) {
+  private List<PutRecordsRequestEntry> toPutRecordsRequestEntryList(List<IRecord> records) {
     logger.debug("records to PutRecordsRequestEntryList. record count: " + records.size());
 
     return records.stream().map(this::toPutRecordsRequestEntry).collect(Collectors.toList());
   }
 
-  private PutRecordsRequestEntry toPutRecordsRequestEntry(@NotNull IRecord record) {
+  private PutRecordsRequestEntry toPutRecordsRequestEntry(IRecord record) {
     logger.debug("record to PutRecordsRequestEntry. record: " + record.toString());
 
     return new PutRecordsRequestEntry()

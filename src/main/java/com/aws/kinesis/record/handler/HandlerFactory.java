@@ -1,6 +1,5 @@
 package com.aws.kinesis.record.handler;
 
-import com.sun.istack.internal.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,6 @@ public class HandlerFactory {
     private static final HandlerFactory INSTANCE = new HandlerFactory();
   }
 
-  @Nullable
   public IRecordsHandler getHandler(HandlerType handlerType, String...handlerArgs){
     switch (handlerType) {
       case StdoutHandler:
